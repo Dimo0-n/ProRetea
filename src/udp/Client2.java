@@ -19,7 +19,6 @@ public class Client2 {
             serverAddress = InetAddress.getByName(SERVER_ADDRESS);
             sendMessage("REGISTER:" + userName);
 
-            // Thread pentru recepționarea mesajelor
             Thread receiveThread = new Thread(() -> {
                 byte[] receiveData = new byte[1024];
                 while (true) {
@@ -28,7 +27,6 @@ public class Client2 {
                         socket.receive(packet);
                         String message = new String(packet.getData(), 0, packet.getLength());
 
-                        // Evităm afișarea propriilor mesaje
                         if (!message.startsWith(userName + ":")) {
                             System.out.println(message);
                         }
@@ -40,7 +38,6 @@ public class Client2 {
 
             receiveThread.start();
 
-            // Trimiterea mesajelor
             while (true) {
                 String userInput = scanner.nextLine();
                 if (userInput.equalsIgnoreCase("exit")) {
@@ -49,9 +46,9 @@ public class Client2 {
                 } else if (userInput.startsWith("private:")) {
                     String[] parts = userInput.split(" ", 2);
                     if (parts.length > 1) {
-                        String recipient = parts[0].substring(8);  // Extrage numele destinatarului
-                        String message = parts[1];  // Mesajul privat
-                        sendMessage("private:" + recipient + ":" + message);  // Trimite mesajul
+                        String recipient = parts[0].substring(8);
+                        String message = parts[1];
+                        sendMessage("private:" + recipient + ":" + message);
                     }
                 } else {
                     sendMessage(userName + ": " + userInput);
