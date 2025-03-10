@@ -4,7 +4,7 @@ import java.net.*;
 import java.util.*;
 
 public class Server {
-    private static final int PORT = 65432;
+    private static final int PORT = 65422;
     private static DatagramSocket socket;
     private static Map<String, String> clients = new HashMap<>();
     private static Map<String, InetSocketAddress> ipMapping = new HashMap<>();
@@ -30,8 +30,15 @@ public class Server {
                     String virtualIP = "127.0.0." + ipCounter++;
                     clients.put(username, virtualIP);
                     ipMapping.put(virtualIP, clientAddress);
-                    System.out.println(username + " s-a înregistrat cu IP virtual: " + virtualIP);
-                } else if (message.startsWith("private:")) {
+                    System.out.println(username + " s-a conectat la chat");
+                }
+                else if (message.startsWith("exit:")) {
+                    String username = message.split(":")[1];
+                    if (clients.containsKey(username)) {
+                        clients.remove(username);
+                        System.out.println(username + " s-a deconectat de la server.");
+                    }
+                }else if (message.startsWith("private:")) {
 
                     String[] parts = message.split(":", 3);
                     if (parts.length == 3) {

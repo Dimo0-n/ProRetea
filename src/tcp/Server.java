@@ -2,14 +2,13 @@ package tcp;
 
 import java.io.*;
 import java.net.*;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Scanner;
-import java.util.Set;
+import java.util.*;
 
 public class Server {
     private static final int PORT = 65432;
     private static final Set<PrintWriter> clientWriters = Collections.synchronizedSet(new HashSet<>());
+    private static final Map<String, String> userIPMapping = new HashMap<>();
+    private static int ipCounter = 2;
     private static volatile boolean isRunning = true;
 
     public static void main(String[] args) {
@@ -68,6 +67,7 @@ public class Server {
         private PrintWriter out;
         private BufferedReader in;
         private String clientName;
+        private String virtualIP;
 
         public ClientHandler(Socket socket) {
             this.socket = socket;
@@ -83,19 +83,20 @@ public class Server {
                 }
 
                 clientName = in.readLine();
-                System.out.println(clientName + " s-a conectat.");
-                broadcast(clientName + " s-a alăturat conversației.");
+                virtualIP = "127.0.0." + ipCounter++;
+                userIPMapping.put(clientName, virtualIP);
+                System.out.println(clientName + " s-a conectat cu IP virtual: " + virtualIP);
+                broadcast(clientName + " (" + virtualIP + ") s-a alăturat conversației.");
 
                 String message;
                 while ((message = in.readLine()) != null) {
                     if (message.equalsIgnoreCase(clientName + ": exit")) {
-
                         System.out.println(clientName + " s-a deconectat.");
-                        broadcast(clientName + " a părăsit conversația.");
+                        broadcast(clientName + " (" + virtualIP + ") a părăsit conversația.");
                         break;
                     }
-                    System.out.println("Mesaj primit: " + message);
-                    broadcast(message);
+                    System.out.println("Mesaj primit de la " + virtualIP + ": " + message);
+                    broadcast("[" + virtualIP + "] " + message);
                 }
             } catch (IOException e) {
                 System.out.println(clientName + " s-a pierdut.");
@@ -108,7 +109,8 @@ public class Server {
                 synchronized (clientWriters) {
                     clientWriters.remove(out);
                 }
-                broadcast(clientName + " a părăsit conversația.");
+                userIPMapping.remove(clientName);
+                broadcast(clientName + " (" + virtualIP + ") a părăsit conversația.");
             }
         }
     }

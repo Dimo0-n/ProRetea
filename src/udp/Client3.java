@@ -5,9 +5,10 @@ import java.util.Scanner;
 
 public class Client3 {
     private static final String SERVER_ADDRESS = "127.0.0.1";
-    private static final int PORT = 65432;
+    private static final int PORT = 65422;
     private static DatagramSocket socket;
     private static InetAddress serverAddress;
+    private static volatile boolean running = true;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
@@ -21,7 +22,7 @@ public class Client3 {
 
             Thread receiveThread = new Thread(() -> {
                 byte[] receiveData = new byte[1024];
-                while (true) {
+                while (running) {
                     try {
                         DatagramPacket packet = new DatagramPacket(receiveData, receiveData.length);
                         socket.receive(packet);
@@ -30,6 +31,8 @@ public class Client3 {
                         if (!message.startsWith(userName + ":")) {
                             System.out.println(message);
                         }
+                        if (message.equals("exit"))
+                            running = false;
                     } catch (Exception e) {
                         System.out.println("Eroare la primirea mesajului: " + e.getMessage());
                     }
@@ -38,10 +41,13 @@ public class Client3 {
 
             receiveThread.start();
 
-            while (true) {
+            while (running) {
                 String userInput = scanner.nextLine();
                 if (userInput.equalsIgnoreCase("exit")) {
+                    exit("exit:" + userName, userName);
+                    running = false;
                     socket.close();
+                    System.out.println("Te-ai deconectat de la server.");
                     break;
                 } else if (userInput.startsWith("private:")) {
                     String[] parts = userInput.split(" ", 2);
@@ -65,6 +71,15 @@ public class Client3 {
             socket.send(packet);
         } catch (Exception e) {
             System.out.println("Eroare la trimiterea mesajului: " + e.getMessage());
+        }
+    }
+
+    private static void exit(String message, String userName) {
+        try {
+            DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), serverAddress, PORT);
+            socket.send(packet);
+        } catch (Exception e) {
+            System.out.println("Eroare la trimiterea mesajului de ieșire: " + e.getMessage());
         }
     }
 }
