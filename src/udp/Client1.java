@@ -4,21 +4,26 @@ import java.net.*;
 import java.util.Scanner;
 
 public class Client1 {
-    private static final String SERVER_ADDRESS = "127.0.0.1";
-    private static final int PORT = 65422;
+    private static final String BROADCAST_ADDRESS = "255.255.255.255";
+    private static final int MESSAGE_PORT = 65000;
     private static DatagramSocket socket;
-    private static InetAddress serverAddress;
+    private static InetAddress broadcastAddress;
     private static volatile boolean running = true;
+    private static String userName;
+    private static String virtualIP;
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
         System.out.print("Introduceți numele dvs: ");
-        String userName = scanner.nextLine();
+        userName = scanner.nextLine();
+
+        virtualIP = "127.0.0.2";
+
 
         try {
-            socket = new DatagramSocket();
-            serverAddress = InetAddress.getByName(SERVER_ADDRESS);
-            sendMessage("REGISTER:" + userName);
+            InetAddress addres = InetAddress.getByName(virtualIP);
+
+            socket = new DatagramSocket(MESSAGE_PORT, addres);
 
             Thread receiveThread = new Thread(() -> {
                 byte[] receiveData = new byte[1024];
@@ -28,11 +33,13 @@ public class Client1 {
                         socket.receive(packet);
                         String message = new String(packet.getData(), 0, packet.getLength());
 
-                        if (!message.startsWith(userName + ":")) {
+                        if (message.startsWith("[private]")) {
+                            // Mesaj privat
+                            System.out.println("(Privat) " + message.substring(9));
+                        } else {
+                            // Mesaj general
                             System.out.println(message);
                         }
-                        if (message.equals("exit"))
-                            running = false;
                     } catch (Exception e) {
                         System.out.println("Eroare la primirea mesajului: " + e.getMessage());
                     }
@@ -43,21 +50,19 @@ public class Client1 {
 
             while (running) {
                 String userInput = scanner.nextLine();
-                if (userInput.equalsIgnoreCase("exit")) {
-                    exit("exit:" + userName, userName);
-                    running = false;
-                    socket.close();
-                    System.out.println("Te-ai deconectat de la server.");
-                    break;
-                } else if (userInput.startsWith("private:")) {
-                    String[] parts = userInput.split(" ", 2);
-                    if (parts.length > 1) {
-                        String recipient = parts[0].substring(8);
-                        String message = parts[1];
-                        sendMessage("private:" + recipient + ":" + message);
+                if (userInput.startsWith("private:")) {
+                    // Format: private:127.0.0.X:Mesaj privat
+                    String[] parts = userInput.split(":", 3);
+                    if (parts.length == 3) {
+                        String recipientIP = parts[1];
+                        String message = parts[2];
+                        sendPrivateMessage(recipientIP, message);
+                    } else {
+                        System.out.println("Format invalid pentru mesajul privat. Folosește: private:IP:Mesaj");
                     }
                 } else {
-                    sendMessage(userName + ": " + userInput);
+
+                    sendBroadcastMessage(userName + ": " + userInput);
                 }
             }
         } catch (Exception e) {
@@ -65,21 +70,26 @@ public class Client1 {
         }
     }
 
-    private static void sendMessage(String message) {
+    private static void sendBroadcastMessage(String message) {
         try {
-            DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), serverAddress, PORT);
+            byte[] buffer = message.getBytes();
+            broadcastAddress = InetAddress.getByName(BROADCAST_ADDRESS);
+            DatagramPacket packet = new DatagramPacket(buffer, buffer.length, broadcastAddress, MESSAGE_PORT);
             socket.send(packet);
+
         } catch (Exception e) {
-            System.out.println("Eroare la trimiterea mesajului: " + e.getMessage());
+            System.out.println("Eroare la trimiterea mesajului de broadcast: " + e.getMessage());
         }
     }
 
-    private static void exit(String message, String userName) {
+    private static void sendPrivateMessage(String recipientIP, String message) {
         try {
-            DatagramPacket packet = new DatagramPacket(message.getBytes(), message.length(), serverAddress, PORT);
+            InetAddress recipientAddress = InetAddress.getByName(recipientIP);
+            String privateMessage = "[private] " + userName + ": " + message;
+            DatagramPacket packet = new DatagramPacket(privateMessage.getBytes(), privateMessage.length(), recipientAddress, MESSAGE_PORT);
             socket.send(packet);
         } catch (Exception e) {
-            System.out.println("Eroare la trimiterea mesajului de ieșire: " + e.getMessage());
+            System.out.println("Eroare la trimiterea mesajului privat: " + e.getMessage());
         }
     }
 }

@@ -3,7 +3,7 @@ package udp;
 import java.net.*;
 import java.util.Scanner;
 
-public class Client3 {
+public class Client4 {
     private static final String BROADCAST_ADDRESS = "255.255.255.255";
     private static final int MESSAGE_PORT = 65000;
     private static DatagramSocket socket;
@@ -17,7 +17,7 @@ public class Client3 {
         System.out.print("Introduceți numele dvs: ");
         userName = scanner.nextLine();
 
-        virtualIP = "127.0.0.4";
+        virtualIP = "127.0.0.5";
 
 
         try {
@@ -61,7 +61,6 @@ public class Client3 {
                         System.out.println("Format invalid pentru mesajul privat. Folosește: private:IP:Mesaj");
                     }
                 } else {
-                    // Mesaj general
                     sendBroadcastMessage(userName + ": " + userInput);
                 }
             }
